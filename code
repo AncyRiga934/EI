@@ -1,0 +1,156 @@
+import java.time.LocalDateTime;
+
+public class Task {
+    private String description;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private String priority;
+
+    public Task(String description, LocalDateTime startTime, LocalDateTime endTime, String priority) {
+        this.description = description;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.priority = priority;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    @Override
+    public String toString() {
+        return "Description: " + description +
+                ", Start Time: " + startTime +
+                ", End Time: " + endTime +
+                ", Priority: " + priority;
+    }
+}
+import java.time.LocalDateTime;
+
+public class TaskFactory {
+    public static Task createTask(String description, LocalDateTime startTime, LocalDateTime endTime, String priority) {
+        return new Task(description, startTime, endTime, priority);
+    }
+}
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ScheduleManager {
+    private static ScheduleManager instance;
+    private List<Task> tasks;
+
+    private ScheduleManager() {
+        tasks = new ArrayList<>();
+    }
+
+    public static ScheduleManager getInstance() {
+        if (instance == null) {
+            instance = new ScheduleManager();
+        }
+        return instance;
+    }
+
+    public boolean addTask(Task task) {
+        if (isConflicting(task)) {
+            System.out.println("Task conflicts with existing schedule.");
+            return false;
+        }
+        tasks.add(task);
+        tasks.sort((t1, t2) -> t1.getStartTime().compareTo(t2.getStartTime()));
+        return true;
+    }
+
+    public void removeTask(String description) {
+        tasks.removeIf(task -> task.getDescription().equals(description));
+    }
+
+    public void viewTasks() {
+        tasks.forEach(System.out::println);
+    }
+
+    private boolean isConflicting(Task newTask) {
+        for (Task task : tasks) {
+            if (task.getStartTime().isBefore(newTask.getEndTime()) && newTask.getStartTime().isBefore(task.getEndTime())) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Scanner;
+
+public class Main {
+    private static LocalDateTime getTimeInput(String prompt, Scanner scanner) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        while (true) {
+            System.out.print(prompt);
+            String timeInput = scanner.nextLine();
+            try {
+                return LocalDateTime.parse(timeInput, formatter);
+            } catch (DateTimeParseException e) {
+                System.out.println("Invalid format. Please enter the time in 'YYYY-MM-DD HH:MM' format.");
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        ScheduleManager scheduleManager = ScheduleManager.getInstance();
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("\nOptions:");
+            System.out.println("1. Add Task");
+            System.out.println("2. Remove Task");
+            System.out.println("3. View All Tasks");
+            System.out.println("4. Exit");
+            System.out.print("Enter your choice: ");
+            String choice = scanner.nextLine();
+
+            switch (choice) {
+                case "1":
+                    System.out.print("Enter task description: ");
+                    String description = scanner.nextLine();
+                    LocalDateTime startTime = getTimeInput("Enter start time (YYYY-MM-DD HH:MM): ", scanner);
+                    LocalDateTime endTime = getTimeInput("Enter end time (YYYY-MM-DD HH:MM): ", scanner);
+                    System.out.print("Enter priority level (High, Medium, Low): ");
+                    String priority = scanner.nextLine();
+                    Task task = TaskFactory.createTask(description, startTime, endTime, priority);
+                    if (scheduleManager.addTask(task)) {
+                        System.out.println("Task added successfully.");
+                    }
+                    break;
+                case "2":
+                    System.out.print("Enter task description to remove: ");
+                    String descToRemove = scanner.nextLine();
+                    scheduleManager.removeTask(descToRemove);
+                    System.out.println("Task removed successfully.");
+                    break;
+                case "3":
+                    scheduleManager.viewTasks();
+                    break;
+                case "4":
+                    scanner.close();
+                    System.exit(0);
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+                    break;
+            }
+        }
+    }
+}
